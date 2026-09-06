@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Студио Лорел — салон за красота в София | Запази час онлайн</title>
+<meta name="description" content="Студио Лорел е салон за красота в центъра на София: коса, маникюр, грижа за лице, вежди и мигли. Запазете час онлайн за под минута.">
+<meta name="theme-color" content="#f7f3ef">
+<meta property="og:title" content="Студио Лорел — салон за красота в София">
+<meta property="og:description" content="Коса, маникюр, лице, вежди. Запазете час онлайн при избран специалист.">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="bg_BG">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23b06b5a'/%3E%3Ctext x='16' y='22' font-family='Georgia,serif' font-size='17' fill='%23fdf9f6' text-anchor='middle'%3EL%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Към основното съдържание</a>
+
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="#top" aria-label="Студио Лорел — начало">
+      <span class="brand-mark" aria-hidden="true">L</span>
+      <span class="brand-text">
+        <strong>Студио Лорел</strong>
+        <small>салон за красота · София</small>
+      </span>
+    </a>
+
+    <nav class="nav" id="primaryNav" aria-label="Основна навигация">
+      <a href="#services">Услуги</a>
+      <a href="#team">Екип</a>
+      <a href="#gallery">Галерия</a>
+      <a href="#reviews">Отзиви</a>
+      <a href="#contact">Контакти</a>
+      <button class="nav-mobile" type="button" id="myBookingsBtnMobile">Моите часове</button>
+    </nav>
+
+    <div class="header-actions">
+      <button class="btn btn-ghost btn-sm" type="button" id="myBookingsBtn">
+        Моите часове <span class="badge" id="bookingsBadge" hidden>0</span>
+      </button>
+      <a class="btn btn-primary btn-sm" href="#booking">Запази час</a>
+      <button class="nav-toggle" type="button" id="navToggle" aria-expanded="false" aria-controls="primaryNav" aria-label="Меню">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+  <!-- ================= HERO ================= -->
+  <section class="hero" id="top">
+    <div class="wrap hero-inner">
+      <div class="hero-copy">
+        <p class="eyebrow">от 2013 г. в сърцето на София</p>
+        <h1>Час, който <em>наистина</em> е ваш.</h1>
+        <p class="lede">
+          Малко студио с четирима специалисти, които работят без бързане.
+          Изберете услуга, човек и удобен час — потвърждението идва веднага.
+        </p>
+        <div class="hero-cta">
+          <a class="btn btn-primary btn-lg" href="#booking">Запази час онлайн</a>
+          <a class="btn btn-outline btn-lg" href="#services">Виж услугите</a>
+        </div>
+        <dl class="hero-stats">
+          <div><dt>12 г.</dt><dd>опит на екипа</dd></div>
+          <div><dt>4</dt><dd>специалисти</dd></div>
+          <div><dt>4.9</dt><dd>средна оценка</dd></div>
+        </dl>
+      </div>
+
+      <div class="hero-visual" aria-hidden="true">
+        <div class="hero-art art-hero"></div>
+        <div class="hero-card">
+          <span class="dot"></span>
+          <div>
+            <strong>Свободни часове тази седмица</strong>
+            <span id="heroSlots">зареждане…</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="marquee" aria-hidden="true">
+    <div class="marquee-track">
+      <span>Коса</span><span>·</span><span>Маникюр</span><span>·</span><span>Грижа за лице</span><span>·</span><span>Вежди и мигли</span><span>·</span>
+      <span>Коса</span><span>·</span><span>Маникюр</span><span>·</span><span>Грижа за лице</span><span>·</span><span>Вежди и мигли</span><span>·</span>
+      <span>Коса</span><span>·</span><span>Маникюр</span><span>·</span><span>Грижа за лице</span><span>·</span><span>Вежди и мигли</span><span>·</span>
+    </div>
+  </div>
+
+  <!-- ================= УСЛУГИ ================= -->
+  <section class="section" id="services">
+    <div class="wrap">
+      <header class="section-head">
+        <p class="eyebrow">Ценоразпис</p>
+        <h2>Услуги</h2>
+        <p class="section-sub">Цените са ориентировъчни за средна дължина и се уточняват при консултацията.</p>
+      </header>
+
+      <div class="tabs" role="tablist" aria-label="Категории услуги" id="serviceTabs"></div>
+      <div class="service-grid" id="serviceList"></div>
+    </div>
+  </section>
+
+  <!-- ================= ЕКИП ================= -->
+  <section class="section section-alt" id="team">
+    <div class="wrap">
+      <header class="section-head">
+        <p class="eyebrow">Хората</p>
+        <h2>Екип</h2>
+        <p class="section-sub">Всеки от нас работи по свой график — календарът показва само реално свободните часове.</p>
+      </header>
+      <div class="team-grid" id="teamList"></div>
+    </div>
+  </section>
+
+  <!-- ================= ГАЛЕРИЯ ================= -->
+  <section class="section" id="gallery">
+    <div class="wrap">
+      <header class="section-head">
+        <p class="eyebrow">Работи</p>
+        <h2>Галерия</h2>
+        <p class="section-sub">Избрани резултати от последните месеци.</p>
+      </header>
+      <div class="chips" id="galleryFilters" role="group" aria-label="Филтър на галерията"></div>
+      <div class="gallery-grid" id="galleryGrid"></div>
+    </div>
+  </section>
+
+  <!-- ================= РЕЗЕРВАЦИЯ ================= -->
+  <section class="section section-book" id="booking">
+    <div class="wrap">
+      <header class="section-head">
+        <p class="eyebrow">Резервация</p>
+        <h2>Запазете час</h2>
+        <p class="section-sub">Четири стъпки, около минута. Отказ или промяна — по всяко време.</p>
+      </header>
+
+      <div class="booking">
+        <!-- Стъпки -->
+        <ol class="steps" id="steps">
+          <li class="step is-active" data-step="1"><span>1</span> Услуга</li>
+          <li class="step" data-step="2"><span>2</span> Специалист</li>
+          <li class="step" data-step="3"><span>3</span> Дата и час</li>
+          <li class="step" data-step="4"><span>4</span> Данни</li>
+        </ol>
+
+        <div class="booking-body">
+          <div class="booking-main">
+            <!-- Стъпка 1 -->
+            <div class="panel is-active" data-panel="1" role="group" aria-label="Стъпка 1: избор на услуга">
+              <h3 class="panel-title">Каква услуга искате?</h3>
+              <div class="chips" id="bookCategoryFilters" role="group" aria-label="Филтър по категория"></div>
+              <div class="option-list" id="bookServiceList"></div>
+            </div>
+
+            <!-- Стъпка 2 -->
+            <div class="panel" data-panel="2" role="group" aria-label="Стъпка 2: избор на специалист">
+              <h3 class="panel-title">При кого?</h3>
+              <div class="option-list" id="bookStaffList"></div>
+            </div>
+
+            <!-- Стъпка 3 -->
+            <div class="panel" data-panel="3" role="group" aria-label="Стъпка 3: избор на дата и час">
+              <h3 class="panel-title">Кога ви е удобно?</h3>
+              <div class="calendar">
+                <div class="calendar-head">
+                  <button class="cal-nav" type="button" id="calPrev" aria-label="Предишен месец">‹</button>
+                  <strong id="calTitle">—</strong>
+                  <button class="cal-nav" type="button" id="calNext" aria-label="Следващ месец">›</button>
+                </div>
+                <div class="calendar-dow" aria-hidden="true">
+                  <span>пн</span><span>вт</span><span>ср</span><span>чт</span><span>пт</span><span>сб</span><span>нд</span>
+                </div>
+                <div class="calendar-grid" id="calGrid" role="grid" aria-label="Календар"></div>
+                <p class="calendar-note">Сивите дни са почивни или напълно заети.</p>
+              </div>
+              <div class="slots-block">
+                <h4 id="slotsTitle">Свободни часове</h4>
+                <div class="slots" id="slotList" role="group" aria-labelledby="slotsTitle"></div>
+              </div>
+            </div>
+
+            <!-- Стъпка 4 -->
+            <div class="panel" data-panel="4" role="group" aria-label="Стъпка 4: вашите данни">
+              <h3 class="panel-title">Вашите данни</h3>
+              <form class="form" id="bookingForm" novalidate>
+                <div class="field">
+                  <label for="fName">Име и фамилия <span aria-hidden="true">*</span></label>
+                  <input type="text" id="fName" name="name" autocomplete="name" required placeholder="Мария Иванова">
+                  <p class="error" data-error-for="fName"></p>
+                </div>
+                <div class="field">
+                  <label for="fPhone">Телефон <span aria-hidden="true">*</span></label>
+                  <input type="tel" id="fPhone" name="phone" autocomplete="tel" required placeholder="0888 123 456" inputmode="tel">
+                  <p class="error" data-error-for="fPhone"></p>
+                </div>
+                <div class="field">
+                  <label for="fEmail">Имейл <small>(по избор)</small></label>
+                  <input type="email" id="fEmail" name="email" autocomplete="email" placeholder="maria@example.com">
+                  <p class="error" data-error-for="fEmail"></p>
+                </div>
+                <div class="field field-full">
+                  <label for="fNote">Бележка към специалиста <small>(по избор)</small></label>
+                  <textarea id="fNote" name="note" rows="3" maxlength="400" placeholder="Например: алергия към амоняк, идвам с 5 мин. закъснение, искам по-къса дължина…"></textarea>
+                </div>
+                <div class="field field-full check">
+                  <input type="checkbox" id="fConsent" name="consent" required>
+                  <label for="fConsent">Съгласен/на съм студиото да съхранява данните ми за целите на резервацията.</label>
+                  <p class="error" data-error-for="fConsent"></p>
+                </div>
+              </form>
+            </div>
+
+            <!-- Потвърждение -->
+            <div class="panel panel-done" data-panel="5" role="status" aria-live="polite">
+              <div class="done-mark" aria-hidden="true">✓</div>
+              <h3 class="panel-title">Часът е запазен</h3>
+              <p class="done-sub">Изпратихме потвърждение. Ще ви очакваме!</p>
+              <div class="done-card" id="doneCard"></div>
+              <div class="done-actions">
+                <button class="btn btn-outline" type="button" id="addToCalendar">Добави в календара</button>
+                <button class="btn btn-ghost" type="button" id="bookAnother">Запази още един час</button>
+              </div>
+            </div>
+
+            <div class="booking-nav" id="bookingNav">
+              <button class="btn btn-ghost" type="button" id="backBtn" disabled>Назад</button>
+              <button class="btn btn-primary" type="button" id="nextBtn" disabled>Напред</button>
+            </div>
+          </div>
+
+          <!-- Обобщение -->
+          <aside class="summary" aria-label="Обобщение на резервацията">
+            <h3>Вашата резервация</h3>
+            <dl class="summary-list">
+              <div><dt>Услуга</dt><dd id="sumService">—</dd></div>
+              <div><dt>Специалист</dt><dd id="sumStaff">—</dd></div>
+              <div><dt>Дата</dt><dd id="sumDate">—</dd></div>
+              <div><dt>Час</dt><dd id="sumTime">—</dd></div>
+              <div><dt>Времетраене</dt><dd id="sumDuration">—</dd></div>
+            </dl>
+            <div class="summary-total">
+              <span>Ориентировъчна цена</span>
+              <strong id="sumPrice">—</strong>
+            </div>
+            <p class="summary-note">Плащането е на място — в брой или с карта. Отказ до 4 часа преди часа е безплатен.</p>
+          </aside>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= ОТЗИВИ ================= -->
+  <section class="section section-alt" id="reviews">
+    <div class="wrap">
+      <header class="section-head">
+        <p class="eyebrow">Отзиви</p>
+        <h2>Какво казват клиентите</h2>
+      </header>
+      <div class="review-grid" id="reviewList"></div>
+    </div>
+  </section>
+
+  <!-- ================= КОНТАКТИ ================= -->
+  <section class="section" id="contact">
+    <div class="wrap contact-grid">
+      <div>
+        <p class="eyebrow">Намерете ни</p>
+        <h2>Контакти</h2>
+        <ul class="contact-list">
+          <li>
+            <span class="ic" aria-hidden="true">◈</span>
+            <div><strong>Адрес</strong><a id="cAddress" href="#" target="_blank" rel="noopener"></a></div>
+          </li>
+          <li>
+            <span class="ic" aria-hidden="true">☏</span>
+            <div><strong>Телефон</strong><a id="cPhone" href="#"></a></div>
+          </li>
+          <li>
+            <span class="ic" aria-hidden="true">✉</span>
+            <div><strong>Имейл</strong><a id="cEmail" href="#"></a></div>
+          </li>
+        </ul>
+        <div class="socials">
+          <a id="cInsta" href="#" target="_blank" rel="noopener">Instagram</a>
+          <a id="cFb" href="#" target="_blank" rel="noopener">Facebook</a>
+        </div>
+      </div>
+      <div class="hours-card">
+        <h3>Работно време</h3>
+        <ul class="hours-list" id="hoursList"></ul>
+        <a class="btn btn-primary btn-block" href="#booking">Запази час</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div>
+      <span class="brand-mark" aria-hidden="true">L</span>
+      <p>Студио Лорел — малък салон с голямо внимание към детайла.</p>
+    </div>
+    <nav aria-label="Долна навигация">
+      <a href="#services">Услуги</a>
+      <a href="#team">Екип</a>
+      <a href="#booking">Резервация</a>
+      <a href="#contact">Контакти</a>
+      <button class="nav-mobile" type="button" id="myBookingsBtnMobile">Моите часове</button>
+    </nav>
+    <p class="copy">© <span id="year"></span> Студио Лорел. Всички права запазени.</p>
+  </div>
+</footer>
+
+<!-- Модал: моите часове -->
+<div class="modal" id="bookingsModal" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-head">
+      <h3 id="modalTitle">Моите часове</h3>
+      <button class="icon-btn" type="button" data-close aria-label="Затвори">✕</button>
+    </div>
+    <div class="modal-body" id="bookingsBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="js/data.js"></script>
+<script src="js/booking.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
