@@ -51,5 +51,5 @@ const CALENDAR_CONFIG = {
   sharedCalendar: true,
 
   // след колко секунди се отказваме от заявката
-  timeoutSeconds: 8
+  timeoutSeconds: 5
 };

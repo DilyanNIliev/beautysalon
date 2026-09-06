@@ -110,6 +110,17 @@
   /* ================= Екип ================= */
   function initTeam() {
     const box = $('#teamList');
+    const single = STAFF.length === 1;
+
+    // при повече от един човек секцията отново става „Екип“
+    box.classList.toggle('is-single', single);
+    if (!single) {
+      $('#teamEyebrow').textContent = 'Хората';
+      $('#teamTitle').textContent = 'Екип';
+      $('#teamSub').textContent = 'Всеки работи по свой график — календарът показва само реално свободните часове.';
+      $('#navTeam').textContent = 'Екип';
+    }
+
     STAFF.forEach(p => {
       const days = Object.keys(p.schedule).length;
       const card = el('article', 'team-card');
@@ -119,8 +130,8 @@
           <p class="team-role">${escape(p.role)}</p>
           <h3>${escape(p.name)}</h3>
           <p>${escape(p.bio)}</p>
-          <p class="dur" style="font-size:.8rem;color:var(--ink-3)">Работи ${days} дни в седмицата</p>
-          <button class="btn btn-outline btn-sm" type="button" data-staff="${p.id}">Запази при ${escape(p.name.split(' ')[0])}</button>
+          <p class="dur" style="font-size:.8rem;color:var(--ink-3)">Работи ${days} дни в седмицата · ${p.services.length} услуги</p>
+          <button class="btn btn-outline btn-sm" type="button" data-staff="${p.id}">Запази час${single ? '' : ' при ' + escape(p.name.split(' ')[0])}</button>
         </div>`;
       box.appendChild(card);
     });
@@ -198,6 +209,9 @@
       list.appendChild(li);
     });
 
+    const stat = $('#statServices');
+    if (stat) stat.textContent = String(SERVICES.length);
+
     const free = Booking.countFreeSlots(7);
     $('#heroSlots').textContent = free > 0 ? `${free} възможни начални часа` : 'няма свободни часове';
   }
@@ -205,7 +219,13 @@
   /* ================= Стъпков процес ================= */
   const Wizard = (() => {
     const state = { step: 1, serviceId: null, staffId: null, dateKey: null, start: null, cursor: new Date() };
-    const MAX_STEP = 4;
+
+    /* Стъпката „Специалист“ се показва само когато има повече от един човек.
+       Числата са номерата на панелите в index.html. */
+    const STEP_LABELS = { 1: 'Услуга', 2: 'Специалист', 3: 'Дата и час', 4: 'Данни' };
+    const flow = STAFF.length > 1 ? [1, 2, 3, 4] : [1, 3, 4];
+    const MAX_STEP = flow[flow.length - 1];
+    const stepIndex = panel => flow.indexOf(panel);
 
     const nodes = {
       steps: $('#steps'),
@@ -233,21 +253,39 @@
     let lastBooking = null;
     let activeCat = 'all';
 
+    /* ---- Лентата със стъпки ---- */
+    function renderSteps() {
+      nodes.steps.innerHTML = '';
+      flow.forEach((panel, i) => {
+        const li = el('li', 'step', `<span>${i + 1}</span> ${escape(STEP_LABELS[panel])}`);
+        li.dataset.step = panel;
+        li.addEventListener('click', () => {
+          if (stepIndex(panel) < stepIndex(state.step) && state.step <= MAX_STEP) show(panel);
+        });
+        nodes.steps.appendChild(li);
+      });
+    }
+
     /* ---- Показване на стъпка ---- */
     function show(step) {
+      // панел извън реда (напр. „Специалист“ при един човек) → следващия валиден
+      if (step <= MAX_STEP && stepIndex(step) === -1) {
+        step = flow.find(p => p > step) || flow[0];
+      }
       state.step = step;
       nodes.panels.forEach(p => p.classList.toggle('is-active', Number(p.dataset.panel) === step));
+      const at = stepIndex(step);
       $$('.step', nodes.steps).forEach(s => {
         const n = Number(s.dataset.step);
         s.classList.toggle('is-active', n === step);
-        s.classList.toggle('is-done', n < step || step > MAX_STEP);
+        s.classList.toggle('is-done', stepIndex(n) < at || step > MAX_STEP);
       });
       nodes.nav.hidden = step > MAX_STEP;
       const activeStep = $('.step.is-active', nodes.steps);
       if (activeStep && nodes.steps.scrollWidth > nodes.steps.clientWidth) {
         nodes.steps.scrollTo({ left: activeStep.offsetLeft - 16, behavior: 'smooth' });
       }
-      nodes.back.disabled = step === 1;
+      nodes.back.disabled = at <= 0;
       nodes.next.textContent = step === MAX_STEP ? 'Потвърди часа' : 'Напред';
       refreshNext();
       if (step === 2) renderStaff();
@@ -319,8 +357,10 @@
       if (state.serviceId !== id) {
         state.serviceId = id;
         // услугата определя кой може да я направи и колко трае — нулираме надолу
-        const staffOk = Booking.staffForService(id).some(s => s.id === state.staffId);
-        if (!staffOk) state.staffId = null;
+        const people = Booking.staffForService(id);
+        if (!people.some(s => s.id === state.staffId)) state.staffId = null;
+        // само един човек прави услугата → избираме го вместо клиента
+        if (!state.staffId && people.length === 1) state.staffId = people[0].id;
         state.start = null;
       }
       renderServiceOptions();
@@ -667,11 +707,13 @@
     /* ---- Навигация между стъпките ---- */
     function next() {
       if (state.step === MAX_STEP) return submit();
-      show(Math.min(state.step + 1, MAX_STEP));
+      const at = stepIndex(state.step);
+      show(flow[Math.min(at + 1, flow.length - 1)]);
       scrollToBooking();
     }
     function back() {
-      show(Math.max(state.step - 1, 1));
+      const at = stepIndex(state.step);
+      show(flow[Math.max(at - 1, 0)]);
       scrollToBooking();
     }
     function scrollToBooking() {
@@ -687,7 +729,7 @@
       activeCat = 'all';
       renderCategoryFilters();
       renderServiceOptions();
-      show(2);
+      show(flow[1]);
       document.getElementById('booking').scrollIntoView({ behavior: 'smooth' });
     }
 
@@ -702,7 +744,9 @@
         renderCategoryFilters();
         renderServiceOptions();
         show(1);
-        toast(`Изберете услуга при ${staff.name.split(' ')[0]}.`);
+        toast(STAFF.length > 1
+          ? `Изберете услуга при ${staff.name.split(' ')[0]}.`
+          : 'Изберете услуга, за да продължите.');
       } else {
         show(3);
       }
@@ -711,6 +755,7 @@
     }
 
     function init() {
+      renderSteps();
       renderCategoryFilters();
       renderServiceOptions();
       renderSummary();
@@ -734,13 +779,6 @@
       $('#bookAnother').addEventListener('click', () => reset(false));
       $('#addToCalendar').addEventListener('click', () => downloadIcs(lastBooking));
 
-      // стъпките са и навигация назад
-      $$('.step', nodes.steps).forEach(s => {
-        s.addEventListener('click', () => {
-          const n = Number(s.dataset.step);
-          if (n < state.step && state.step <= MAX_STEP) show(n);
-        });
-      });
     }
 
     function validateField(id) {

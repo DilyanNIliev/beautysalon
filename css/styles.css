@@ -232,6 +232,11 @@ ul,ol,dl,dd,figure,blockquote{margin:0;padding:0;list-style:none}
 
 /* Екип */
 .team-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1.25rem}
+.team-grid.is-single{grid-template-columns:minmax(0,640px)}
+.team-grid.is-single .team-card{flex-direction:row}
+.team-grid.is-single .team-photo{aspect-ratio:auto;width:220px;flex:none}
+.team-grid.is-single .team-body{padding:1.75rem 2rem;justify-content:center;gap:.65rem}
+.team-grid.is-single .team-body h3{font-size:1.75rem}
 .team-card{
   background:var(--paper);border:1px solid var(--line);border-radius:var(--r-md);
   overflow:hidden;display:flex;flex-direction:column;
@@ -541,6 +546,9 @@ ul,ol,dl,dd,figure,blockquote{margin:0;padding:0;list-style:none}
 }
 @media (max-width:760px){
   :root{--header-h:64px}
+  .team-grid.is-single .team-card{flex-direction:column}
+  .team-grid.is-single .team-photo{width:100%;aspect-ratio:4/3}
+  .team-grid.is-single .team-body{padding:1.25rem 1.35rem 1.45rem}
   .nav{
     position:absolute;top:var(--header-h);left:0;right:0;flex-direction:column;gap:0;
     background:var(--paper);border-block:1px solid var(--line);box-shadow:var(--shadow-md);

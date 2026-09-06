@@ -31,7 +31,7 @@
 
     <nav class="nav" id="primaryNav" aria-label="Основна навигация">
       <a href="#services">Услуги</a>
-      <a href="#team">Екип</a>
+      <a href="#team" id="navTeam">Специалист</a>
       <a href="#gallery">Галерия</a>
       <a href="#reviews">Отзиви</a>
       <a href="#contact">Контакти</a>
@@ -58,16 +58,16 @@
         <p class="eyebrow">от 2013 г. в сърцето на София</p>
         <h1>Час, който <em>наистина</em> е ваш.</h1>
         <p class="lede">
-          Малко студио с четирима специалисти, които работят без бързане.
-          Изберете услуга, човек и удобен час — потвърждението идва веднага.
+          Малко студио, в което се работи спокойно и с по един клиент наведнъж.
+          Изберете услуга и удобен час — потвърждението идва веднага.
         </p>
         <div class="hero-cta">
           <a class="btn btn-primary btn-lg" href="#booking">Запази час онлайн</a>
           <a class="btn btn-outline btn-lg" href="#services">Виж услугите</a>
         </div>
         <dl class="hero-stats">
-          <div><dt>12 г.</dt><dd>опит на екипа</dd></div>
-          <div><dt>4</dt><dd>специалисти</dd></div>
+          <div><dt>12 г.</dt><dd>опит</dd></div>
+          <div><dt id="statServices">16</dt><dd>услуги</dd></div>
           <div><dt>4.9</dt><dd>средна оценка</dd></div>
         </dl>
       </div>
@@ -111,9 +111,9 @@
   <section class="section section-alt" id="team">
     <div class="wrap">
       <header class="section-head">
-        <p class="eyebrow">Хората</p>
-        <h2>Екип</h2>
-        <p class="section-sub">Всеки от нас работи по свой график — календарът показва само реално свободните часове.</p>
+        <p class="eyebrow" id="teamEyebrow">Човекът</p>
+        <h2 id="teamTitle">Специалист</h2>
+        <p class="section-sub" id="teamSub">Календарът показва само реално свободните часове.</p>
       </header>
       <div class="team-grid" id="teamList"></div>
     </div>
@@ -143,12 +143,7 @@
 
       <div class="booking">
         <!-- Стъпки -->
-        <ol class="steps" id="steps">
-          <li class="step is-active" data-step="1"><span>1</span> Услуга</li>
-          <li class="step" data-step="2"><span>2</span> Специалист</li>
-          <li class="step" data-step="3"><span>3</span> Дата и час</li>
-          <li class="step" data-step="4"><span>4</span> Данни</li>
-        </ol>
+        <ol class="steps" id="steps" aria-label="Стъпки на резервацията"></ol>
 
         <div class="booking-body">
           <div class="booking-main">
@@ -311,7 +306,7 @@
     </div>
     <nav aria-label="Долна навигация">
       <a href="#services">Услуги</a>
-      <a href="#team">Екип</a>
+      <a href="#team">Специалист</a>
       <a href="#booking">Резервация</a>
       <a href="#contact">Контакти</a>
       <button class="nav-mobile" type="button" id="myBookingsBtnMobile">Моите часове</button>
