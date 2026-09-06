@@ -153,10 +153,13 @@ const Booking = (() => {
   };
 
   /**
-   * Връща свободните начални часове (в минути от полунощ) за
-   * специалист + ден + продължителност на услугата.
+   * Всички начални часове за деня със статуса на всеки:
+   *   'free'  — свободен
+   *   'taken' — зает (локална резервация или събитие в календара)
+   *   'break' — пада в почивката на специалиста
+   *   'past'  — вече е минал или е твърде скоро за днес
    */
-  const slotsFor = (staffId, dateKey, duration) => {
+  const daySlots = (staffId, dateKey, duration) => {
     const staff = getStaff(staffId);
     if (!staff || !duration) return [];
 
@@ -181,13 +184,20 @@ const Booking = (() => {
 
     const out = [];
     for (let t = shift.start; t + duration <= shift.end; t += slotStep) {
-      if (t < earliest) continue;
-      if (brk && overlaps(t, duration, brk.start, brk.end - brk.start)) continue;
-      if (taken.some(b => overlaps(t, duration, b.start, b.duration))) continue;
-      out.push(t);
+      let status = 'free';
+      if (t < earliest) status = 'past';
+      else if (brk && overlaps(t, duration, brk.start, brk.end - brk.start)) status = 'break';
+      else if (taken.some(b => overlaps(t, duration, b.start, b.duration))) status = 'taken';
+      out.push({ start: t, status });
     }
     return out;
   };
+
+  /** Само свободните начални часове (в минути от полунощ) */
+  const slotsFor = (staffId, dateKey, duration) =>
+    daySlots(staffId, dateKey, duration)
+      .filter(s => s.status === 'free')
+      .map(s => s.start);
 
   /** Има ли изобщо свободно място този ден при този специалист */
   const dayHasSlots = (staffId, dateKey, duration) => slotsFor(staffId, dateKey, duration).length > 0;
@@ -241,7 +251,7 @@ const Booking = (() => {
     formatTime, formatDateLong, formatDateShort, formatMonth, formatDuration, formatPrice,
     getService, getStaff, getCategory, staffForService,
     all, upcoming, add, remove, isPast,
-    slotsFor, dayHasSlots, countFreeSlots, icsFor,
+    daySlots, slotsFor, dayHasSlots, countFreeSlots, icsFor,
     setBusyProvider, overlaps,
     maxDaysAhead
   };

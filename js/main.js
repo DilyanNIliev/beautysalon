@@ -430,6 +430,8 @@
     function renderSlots(opts = {}) {
       const service = Booking.getService(state.serviceId);
       nodes.slotList.innerHTML = '';
+      // бележките стоят извън скролиращия списък, за да се виждат винаги
+      $$('.slots-warn, .slots-legend', nodes.slotList.parentElement).forEach(n => n.remove());
 
       if (!state.dateKey) {
         nodes.slotsTitle.textContent = 'Свободни часове';
@@ -444,7 +446,9 @@
         return;
       }
 
-      const slots = Booking.slotsFor(state.staffId, state.dateKey, service.duration);
+      // показваме и заетите часове — задраскани, за да се вижда кога е пълно
+      const slots = Booking.daySlots(state.staffId, state.dateKey, service.duration)
+        .filter(s => s.status !== 'past');
 
       if (!slots.length) {
         nodes.slotList.appendChild(el('p', 'empty-note', 'За този ден няма свободни часове. Опитайте с друга дата.'));
@@ -452,18 +456,38 @@
         return;
       }
 
-      slots.forEach(t => {
-        const b = el('button', 'slot' + (state.start === t ? ' is-selected' : ''), Booking.formatTime(t));
+      const LABELS = { taken: 'зает', break: 'почивка' };
+
+      slots.forEach(({ start: t, status }) => {
+        const free = status === 'free';
+        const selected = free && state.start === t;
+        const b = el('button', `slot${selected ? ' is-selected' : ''}${free ? '' : ' is-' + status}`,
+          Booking.formatTime(t));
         b.type = 'button';
-        b.setAttribute('aria-pressed', String(state.start === t));
-        b.addEventListener('click', () => {
-          state.start = t;
-          renderSlots();
-          renderSummary();
-          refreshNext();
-        });
+
+        if (!free) {
+          b.disabled = true;
+          b.title = LABELS[status] || 'не е свободен';
+          b.setAttribute('aria-label', `${Booking.formatTime(t)} — ${LABELS[status] || 'не е свободен'}`);
+        } else {
+          b.setAttribute('aria-pressed', String(selected));
+          b.addEventListener('click', () => {
+            state.start = t;
+            renderSlots();
+            renderSummary();
+            refreshNext();
+          });
+        }
+
         nodes.slotList.appendChild(b);
       });
+
+      if (!slots.some(s => s.status === 'free')) {
+        nodes.slotList.after(el('p', 'slots-legend',
+          'Всички часове за този ден са заети. Опитайте с друга дата или друг специалист.'));
+      } else if (slots.some(s => s.status === 'taken')) {
+        nodes.slotList.after(el('p', 'slots-legend', 'Задрасканите часове вече са заети.'));
+      }
 
       renderCalendarNote();
     }
@@ -471,7 +495,7 @@
     /** Предупреждение, ако календарът не е отговорил */
     function renderCalendarNote() {
       if (!state.dateKey || Calendar.statusFor(state.dateKey) !== 'fail') return;
-      nodes.slotList.prepend(el('p', 'slots-warn',
+      nodes.slotList.before(el('p', 'slots-warn',
         'Календарът на студиото не отговори — възможно е част от тези часове вече да са заети. ' +
         'Ще потвърдим по телефона.'));
     }
