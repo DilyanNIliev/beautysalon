@@ -473,7 +473,8 @@
       if (!/^(\+359|0)\d{8,9}$/.test(digits)) { setError('fPhone', 'Въведете валиден телефон, напр. 0888 123 456.'); ok = false; }
       else setError('fPhone', '');
 
-      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { setError('fEmail', 'Проверете имейл адреса.'); ok = false; }
+      if (!email) { setError('fEmail', 'Имейлът е нужен, за да ви изпратим потвърждение.'); ok = false; }
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { setError('fEmail', 'Проверете имейл адреса.'); ok = false; }
       else setError('fEmail', '');
 
       if (!consent) { setError('fConsent', 'Необходимо е съгласие, за да запазим часа.'); ok = false; }
@@ -483,13 +484,18 @@
     }
 
     /* ---- Потвърждение ---- */
-    function submit() {
+    let sending = false;
+
+    async function submit() {
+      if (sending) return;
       if (!validate()) {
         const bad = $('.field.has-error input');
         if (bad) bad.focus();
         return;
       }
       const service = Booking.getService(state.serviceId);
+
+      setBusy(true);
       const res = Booking.add({
         serviceId: state.serviceId,
         staffId: state.staffId,
@@ -504,6 +510,7 @@
       });
 
       if (!res.ok) {
+        setBusy(false);
         toast('Този час току-що беше зает. Моля, изберете друг.');
         state.start = null;
         show(3);
@@ -512,19 +519,54 @@
         return;
       }
 
+      // часът вече е запазен — имейлът не може да го отмени, само уведомява
+      const mail = await Notify.send(res.booking);
+      setBusy(false);
+
       lastBooking = res.booking;
       renderDone(res.booking);
+      renderMailStatus(res.booking, mail);
       show(5);
       updateBadge();
-      toast(res.stored
-        ? 'Готово! Часът е запазен.'
-        : 'Часът е потвърден, но браузърът не позволи запазване в историята.');
       $('#booking').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+      if (mail.client === 'ok') toast('Готово! Изпратихме потвърждение по имейл.');
+      else if (mail.ready) toast('Часът е запазен. Имейлът не тръгна — ще ви потърсим по телефона.');
+      else toast('Готово! Часът е запазен.');
+
+      if (!res.stored) console.warn('Браузърът не позволи запазване в „Моите часове“.');
+    }
+
+    /** Показва дали потвърждението е тръгнало */
+    function renderMailStatus(booking, mail) {
+      const sub = $('#doneSub');
+      if (!sub) return;
+      if (mail.client === 'ok') {
+        sub.textContent = `Изпратихме потвърждение на ${booking.email}. Ще ви очакваме!`;
+        sub.className = 'done-sub';
+      } else if (!mail.ready) {
+        sub.textContent = 'Ще ви очакваме! (Изпращането на имейли още не е настроено.)';
+        sub.className = 'done-sub';
+      } else {
+        sub.textContent = 'Часът е запазен, но потвърждението по имейл не тръгна. ' +
+          `Ако не получите съобщение, звъннете на ${STUDIO.phone} с код ${booking.code}.`;
+        sub.className = 'done-sub is-warn';
+      }
+    }
+
+    /** Състояние „изпращане“ на бутона за потвърждение */
+    function setBusy(on) {
+      sending = on;
+      nodes.next.disabled = on;
+      nodes.back.disabled = on || state.step === 1;
+      nodes.next.classList.toggle('is-busy', on);
+      nodes.next.textContent = on ? 'Изпращане…' : (state.step === MAX_STEP ? 'Потвърди часа' : 'Напред');
     }
 
     function renderDone(b) {
       const service = Booking.getService(b.serviceId);
       const staff = Booking.getStaff(b.staffId);
+      $('#addToGoogle').href = Notify.googleCalendarUrl(b);
       nodes.doneCard.innerHTML = `
         <dl>
           <div><dt>Услуга</dt><dd>${escape(service.name)}</dd></div>
@@ -686,7 +728,8 @@
         <small>${escape(Booking.formatDateLong(b.date))} · ${Booking.formatTime(b.start)} – ${Booking.formatTime(b.start + b.duration)}</small>
         <small>${escape(staff ? staff.name : '—')} · ${Booking.formatPrice(b.price)} · код <code>${escape(b.code)}</code></small>
         ${past ? '' : `<div class="row-actions">
-          <button class="btn btn-outline btn-sm" type="button" data-ics="${b.id}">В календара</button>
+          <a class="btn btn-outline btn-sm" href="${escape(Notify.googleCalendarUrl(b))}" target="_blank" rel="noopener">Google Календар</a>
+          <button class="btn btn-outline btn-sm" type="button" data-ics="${b.id}">.ics</button>
           <button class="btn btn-ghost btn-sm" type="button" data-cancel="${b.id}">Откажи часа</button>
         </div>`}`;
       body.appendChild(row);

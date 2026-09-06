@@ -88,6 +88,12 @@ ul,ol,dl,dd,figure,blockquote{margin:0;padding:0;list-style:none}
 .btn:hover{transform:translateY(-1px)}
 .btn:active{transform:translateY(0)}
 .btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.btn.is-busy{opacity:.85}
+.btn.is-busy::before{
+  content:'';width:14px;height:14px;flex:none;border-radius:50%;
+  border:2px solid currentColor;border-top-color:transparent;animation:spin .7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
 .btn-primary{--btn-bg:var(--ink);--btn-fg:var(--cream);--btn-bd:var(--ink);box-shadow:var(--shadow-sm)}
 .btn-primary:hover:not(:disabled){--btn-bg:var(--clay-dark);--btn-bd:var(--clay-dark)}
 .btn-outline{--btn-bd:var(--line-2)}
@@ -414,6 +420,7 @@ ul,ol,dl,dd,figure,blockquote{margin:0;padding:0;list-style:none}
 .field.check label{font-weight:500;font-size:.87rem;color:var(--ink-2);flex:1;min-width:200px}
 .field.has-error input,.field.has-error textarea{border-color:var(--err)}
 .error{font-size:.78rem;color:var(--err);min-height:0}
+.hint{font-size:.76rem;color:var(--ink-3)}
 .error:empty{display:none}
 
 /* Потвърждение */
@@ -423,7 +430,8 @@ ul,ol,dl,dd,figure,blockquote{margin:0;padding:0;list-style:none}
   background:var(--ok);color:#fff;font-size:1.9rem;animation:pop .45s cubic-bezier(.2,1.5,.4,1);
 }
 @keyframes pop{from{transform:scale(0)}to{transform:scale(1)}}
-.done-sub{color:var(--ink-2);margin-bottom:1.75rem}
+.done-sub{color:var(--ink-2);margin-bottom:1.75rem;max-width:34rem;margin-inline:auto}
+.done-sub.is-warn{color:var(--err)}
 .done-card{
   text-align:left;border:1px solid var(--line);border-radius:var(--r-md);
   padding:1.35rem 1.5rem;background:var(--cream);max-width:26rem;margin:0 auto 1.6rem;
@@ -474,7 +482,7 @@ ul,ol,dl,dd,figure,blockquote{margin:0;padding:0;list-style:none}
 .booking-row-top strong{font-size:1rem}
 .booking-row-top code{font-size:.74rem;color:var(--ink-3);letter-spacing:.06em}
 .booking-row small{font-size:.85rem;color:var(--ink-2)}
-.booking-row .row-actions{display:flex;gap:.5rem;margin-top:.35rem}
+.booking-row .row-actions{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.35rem}
 .tag{display:inline-block;padding:.15rem .55rem;border-radius:var(--r-pill);font-size:.7rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
 .tag-ok{background:rgba(63,125,88,.12);color:var(--ok)}
 .tag-past{background:var(--cream-2);color:var(--ink-3)}

@@ -231,3 +231,145 @@ const Booking = (() => {
     maxDaysAhead
   };
 })();
+
+/* ============================================================
+   Изпращане на имейли през EmailJS.
+   При потвърдена резервация тръгват два имейла:
+   един до клиента (потвърждение) и един до салона (известие).
+   Ключовете са в js/config.js.
+   ============================================================ */
+
+const Notify = (() => {
+  const cfg = typeof EMAIL_CONFIG !== 'undefined' ? EMAIL_CONFIG : { enabled: false };
+  let ready = false;
+
+  /** Инициализира SDK-то, ако е зареден и има ключ */
+  function init() {
+    if (ready) return true;
+    if (!cfg.enabled || !cfg.publicKey || cfg.publicKey.startsWith('YOUR_')) return false;
+    if (typeof window === 'undefined' || !window.emailjs) return false;
+    try {
+      window.emailjs.init(cfg.publicKey);
+      ready = true;
+    } catch (e) {
+      console.warn('EmailJS не можа да се инициализира:', e);
+      ready = false;
+    }
+    return ready;
+  }
+
+  const isReady = () => ready || init();
+
+  /* --- Дата и час във формат за календар --- */
+  const pad = n => String(n).padStart(2, '0');
+
+  /** UTC печат за Google Calendar / .ics, напр. 20260908T063000Z */
+  function calStamp(booking, offsetMinutes = 0) {
+    const d = Booking.fromKey(booking.date);
+    d.setMinutes(booking.start + offsetMinutes);
+    return `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T` +
+           `${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}00Z`;
+  }
+
+  /** Линк „Добави в Google Календар“ */
+  function googleCalendarUrl(booking) {
+    const service = Booking.getService(booking.serviceId);
+    const staff = Booking.getStaff(booking.staffId);
+    const params = new URLSearchParams({
+      action: 'TEMPLATE',
+      text: `${service ? service.name : 'Час'} — ${STUDIO.name}`,
+      dates: `${calStamp(booking)}/${calStamp(booking, booking.duration)}`,
+      details: `Резервация в ${STUDIO.name}\nСпециалист: ${staff ? staff.name : '—'}\n` +
+               `Код: ${booking.code}\nТелефон на студиото: ${STUDIO.phone}`,
+      location: STUDIO.address
+    });
+    return `https://calendar.google.com/calendar/render?${params.toString()}`;
+  }
+
+  /* --- Параметрите, които получават шаблоните в EmailJS --- */
+  function params(booking) {
+    const service = Booking.getService(booking.serviceId);
+    const staff = Booking.getStaff(booking.staffId);
+    const category = service ? Booking.getCategory(service.category) : null;
+
+    const start = calStamp(booking);
+    const end = calStamp(booking, booking.duration);
+    const serviceLine = staff && service
+      ? `${service.name} (при ${staff.name})`
+      : (service ? service.name : '');
+
+    const shared = {
+      client_name: booking.name,
+      client_phone: booking.phone,
+      category: category ? category.name : '',
+      service: serviceLine,
+      specialist: staff ? staff.name : '',
+      date: Booking.formatDateLong(booking.date),
+      time: Booking.formatTime(booking.start),
+      end_time: Booking.formatTime(booking.start + booking.duration),
+      duration: Booking.formatDuration(booking.duration),
+      price: `${booking.price} лв.`,
+      notes: booking.note || '—',
+      booking_code: booking.code,
+      studio_name: STUDIO.name,
+      studio_phone: STUDIO.phone,
+      studio_address: STUDIO.address
+    };
+
+    return {
+      client: { ...shared, to_email: booking.email },
+      business: {
+        ...shared,
+        to_email: cfg.salonEmail,
+        client_email: booking.email || '—',
+        gcal_start: start,
+        gcal_end: end,
+        service_encoded: encodeURIComponent(`${serviceLine} — ${STUDIO.name}`),
+        client_name_encoded: encodeURIComponent(booking.name),
+        notes_encoded: encodeURIComponent(booking.note || 'Няма бележки'),
+        studio_address_encoded: encodeURIComponent(STUDIO.address)
+      }
+    };
+  }
+
+  /**
+   * Изпраща двата имейла. Никога не хвърля грешка —
+   * резервацията вече е запазена и не бива да се губи заради имейл.
+   * Връща { client, business, ready } със стойности 'ok' | 'skip' | 'fail'.
+   */
+  async function send(booking) {
+    if (!isReady()) return { ready: false, client: 'skip', business: 'skip' };
+
+    const p = params(booking);
+    const jobs = [];
+
+    // до клиента — само ако е оставил имейл
+    jobs.push(booking.email && cfg.clientTemplateId
+      ? window.emailjs.send(cfg.serviceId, cfg.clientTemplateId, p.client)
+      : Promise.reject(new Error('skip')));
+
+    // до салона — винаги
+    jobs.push(cfg.businessTemplateId
+      ? window.emailjs.send(cfg.serviceId, cfg.businessTemplateId, p.business)
+      : Promise.reject(new Error('skip')));
+
+    const [client, business] = await Promise.allSettled(jobs);
+    const mark = (res, skipped) =>
+      res.status === 'fulfilled' ? 'ok' : (skipped ? 'skip' : 'fail');
+
+    if (client.status === 'rejected' && client.reason && client.reason.message !== 'skip') {
+      console.warn('Имейлът до клиента не тръгна:', client.reason);
+    }
+    if (business.status === 'rejected' && business.reason && business.reason.message !== 'skip') {
+      console.warn('Имейлът до салона не тръгна:', business.reason);
+    }
+
+    return {
+      ready: true,
+      client: mark(client, !booking.email || !cfg.clientTemplateId),
+      business: mark(business, !cfg.businessTemplateId)
+    };
+  }
+
+  return { init, isReady, send, googleCalendarUrl, salonEmail: cfg.salonEmail };
+})();

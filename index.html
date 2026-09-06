@@ -201,8 +201,9 @@
                   <p class="error" data-error-for="fPhone"></p>
                 </div>
                 <div class="field">
-                  <label for="fEmail">Имейл <small>(по избор)</small></label>
-                  <input type="email" id="fEmail" name="email" autocomplete="email" placeholder="maria@example.com">
+                  <label for="fEmail">Имейл <span aria-hidden="true">*</span></label>
+                  <input type="email" id="fEmail" name="email" autocomplete="email" required placeholder="maria@example.com">
+                  <p class="hint">Тук изпращаме потвърждението за часа.</p>
                   <p class="error" data-error-for="fEmail"></p>
                 </div>
                 <div class="field field-full">
@@ -221,10 +222,11 @@
             <div class="panel panel-done" data-panel="5" role="status" aria-live="polite">
               <div class="done-mark" aria-hidden="true">✓</div>
               <h3 class="panel-title">Часът е запазен</h3>
-              <p class="done-sub">Изпратихме потвърждение. Ще ви очакваме!</p>
+              <p class="done-sub" id="doneSub">Ще ви очакваме!</p>
               <div class="done-card" id="doneCard"></div>
               <div class="done-actions">
-                <button class="btn btn-outline" type="button" id="addToCalendar">Добави в календара</button>
+                <a class="btn btn-outline" id="addToGoogle" href="#" target="_blank" rel="noopener">Google Календар</a>
+                <button class="btn btn-outline" type="button" id="addToCalendar">Изтегли .ics</button>
                 <button class="btn btn-ghost" type="button" id="bookAnother">Запази още един час</button>
               </div>
             </div>
@@ -332,6 +334,8 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script src="js/config.js"></script>
 <script src="js/data.js"></script>
 <script src="js/booking.js"></script>
 <script src="js/main.js"></script>
