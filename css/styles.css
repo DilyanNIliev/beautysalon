@@ -397,6 +397,15 @@ ul,ol,dl,dd,figure,blockquote{margin:0;padding:0;list-style:none}
 }
 .slot:hover{border-color:var(--ink);background:var(--cream)}
 .slot.is-selected{background:var(--ink);border-color:var(--ink);color:var(--cream)}
+.empty-note.is-loading{color:var(--ink-3);display:flex;align-items:center;justify-content:center;gap:.6rem}
+.empty-note.is-loading::before{
+  content:'';width:14px;height:14px;border-radius:50%;
+  border:2px solid var(--line-2);border-top-color:var(--clay);animation:spin .7s linear infinite;
+}
+.slots-warn{
+  grid-column:1/-1;margin-bottom:.4rem;padding:.7rem .9rem;border-radius:var(--r-sm);
+  background:var(--clay-soft);color:var(--clay-dark);font-size:.8rem;line-height:1.5;
+}
 .empty-note{
   grid-column:1/-1;padding:1.4rem;text-align:center;color:var(--ink-2);font-size:.9rem;
   border:1px dashed var(--line-2);border-radius:var(--r-md);background:var(--cream);

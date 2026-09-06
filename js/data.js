@@ -15,13 +15,13 @@ const STUDIO = {
   facebook: 'https://facebook.com',
   // 0 = неделя … 6 = събота
   hours: [
-    { day: 0, label: 'Неделя', text: 'Почивен ден' },
+    { day: 0, label: 'Неделя', text: '10:00 – 18:00' },
     { day: 1, label: 'Понеделник', text: '09:00 – 19:00' },
     { day: 2, label: 'Вторник', text: '09:00 – 19:00' },
     { day: 3, label: 'Сряда', text: '09:00 – 19:00' },
     { day: 4, label: 'Четвъртък', text: '09:00 – 20:00' },
     { day: 5, label: 'Петък', text: '09:00 – 20:00' },
-    { day: 6, label: 'Събота', text: '10:00 – 16:00' }
+    { day: 6, label: 'Събота', text: '10:00 – 18:00' }
   ]
 };
 
@@ -56,6 +56,16 @@ const SERVICES = [
   { id: 'lash-ext',     category: 'brows', name: 'Удължаване на мигли',        desc: 'Косъм по косъм, класика или обем 2D–4D.',                  duration: 120, price: 110 }
 ];
 
+/* Помощник за график: еднакво работно време през цялата седмица.
+   Засега студиото няма почивни дни. За да върнете почивен ден на някого,
+   подайте му дните изрично, напр. week(9, 19, [1, 2, 4, 5, 6]) —
+   0 е неделя, 6 е събота. */
+const week = (startHour, endHour, days = [0, 1, 2, 3, 4, 5, 6]) =>
+  days.reduce((acc, d) => {
+    acc[d] = { start: startHour * 60, end: endHour * 60 };
+    return acc;
+  }, {});
+
 /* --- Специалисти.
    works: работни дни с начало/край в минути от полунощ
    break: почивка (по избор)
@@ -69,13 +79,7 @@ const STAFF = [
     initials: 'МТ',
     tone: 'tone-rose',
     services: ['cut-women', 'cut-men', 'color', 'balayage', 'styling', 'keratin'],
-    schedule: {
-      1: { start: 9 * 60,  end: 19 * 60 },
-      2: { start: 9 * 60,  end: 19 * 60 },
-      4: { start: 9 * 60,  end: 20 * 60 },
-      5: { start: 9 * 60,  end: 20 * 60 },
-      6: { start: 10 * 60, end: 16 * 60 }
-    },
+    schedule: week(9, 20),
     breakTime: { start: 13 * 60, end: 13 * 60 + 45 }
   },
   {
@@ -86,13 +90,7 @@ const STAFF = [
     initials: 'ИП',
     tone: 'tone-sage',
     services: ['cut-men', 'cut-women', 'styling'],
-    schedule: {
-      1: { start: 10 * 60, end: 19 * 60 },
-      2: { start: 10 * 60, end: 19 * 60 },
-      3: { start: 10 * 60, end: 19 * 60 },
-      5: { start: 11 * 60, end: 20 * 60 },
-      6: { start: 10 * 60, end: 16 * 60 }
-    },
+    schedule: week(10, 20),
     breakTime: { start: 14 * 60, end: 14 * 60 + 30 }
   },
   {
@@ -103,13 +101,7 @@ const STAFF = [
     initials: 'РГ',
     tone: 'tone-sand',
     services: ['mani-classic', 'mani-build', 'pedi', 'nail-art'],
-    schedule: {
-      1: { start: 9 * 60,  end: 18 * 60 },
-      3: { start: 9 * 60,  end: 18 * 60 },
-      4: { start: 9 * 60,  end: 20 * 60 },
-      5: { start: 9 * 60,  end: 19 * 60 },
-      6: { start: 10 * 60, end: 16 * 60 }
-    },
+    schedule: week(9, 19),
     breakTime: { start: 13 * 60, end: 13 * 60 + 30 }
   },
   {
@@ -120,12 +112,7 @@ const STAFF = [
     initials: 'ЕС',
     tone: 'tone-lilac',
     services: ['facial-deep', 'facial-hydra', 'facial-anti', 'brow-shape', 'brow-laminate', 'lash-ext'],
-    schedule: {
-      2: { start: 9 * 60,  end: 19 * 60 },
-      3: { start: 9 * 60,  end: 19 * 60 },
-      4: { start: 11 * 60, end: 20 * 60 },
-      5: { start: 9 * 60,  end: 19 * 60 }
-    },
+    schedule: week(9, 20),
     breakTime: { start: 13 * 60, end: 14 * 60 }
   }
 ];

@@ -20,3 +20,36 @@ const EMAIL_CONFIG = {
   // на този адрес идват известията за нови резервации
   salonEmail: 'ilievdilyan@gmail.com'
 };
+
+/* ============================================================
+   Връзка с Google Календар през Google Apps Script
+
+   Web App-ът приема:
+     GET  ?date=YYYY-MM-DD  →  { status: "success", busySlots: [...] }
+     POST { ...резервация }  →  създава събитие в календара
+
+   busySlots се приема в няколко формата:
+     ["09:00", "13:30"]                        начални часове
+     [{ start: "09:00", end: "10:30" }]         интервали
+     [{ start: "09:00", duration: 90 }]         начало + минути
+   Записите могат да носят и "staff" с id на специалист — тогава
+   заемат само неговия график, вместо целия салон.
+   ============================================================ */
+
+const CALENDAR_CONFIG = {
+  enabled: true,
+
+  webAppUrl: 'https://script.google.com/macros/s/AKfycbzwqelKebMwkjPqzMPIKiOGo3IdGJ-H9XClkHG6ZPzwCiPzdvtV4eIcAWi6Et3eTBhkjA/exec',
+
+  // записва ли новите резервации обратно в календара
+  sendBookings: true,
+
+  // колко трае зает час, ако календарът върне само начало
+  defaultBusyMinutes: 60,
+
+  // един общ календар за студиото: зает час блокира всички специалисти
+  sharedCalendar: true,
+
+  // след колко секунди се отказваме от заявката
+  timeoutSeconds: 8
+};

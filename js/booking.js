@@ -138,6 +138,20 @@ const Booking = (() => {
   /* ---------- Свободни часове ---------- */
   const overlaps = (startA, durA, startB, durB) => startA < startB + durB && startB < startA + durA;
 
+  /* Външен източник на заети часове (Google Календар).
+     Регистрира се от модула Calendar по-долу и се чете синхронно —
+     показваме само това, което вече е изтеглено за деня. */
+  let busyProvider = null;
+  const setBusyProvider = fn => { busyProvider = fn; };
+  const externalBusy = (dateKey, staffId) => {
+    if (!busyProvider) return [];
+    try {
+      return busyProvider(dateKey, staffId) || [];
+    } catch (e) {
+      return [];
+    }
+  };
+
   /**
    * Връща свободните начални часове (в минути от полунощ) за
    * специалист + ден + продължителност на услугата.
@@ -154,7 +168,7 @@ const Booking = (() => {
     const shift = staff.schedule[date.getDay()];
     if (!shift) return [];
 
-    const taken = forStaffDay(staffId, dateKey);
+    const taken = forStaffDay(staffId, dateKey).concat(externalBusy(dateKey, staffId));
     const brk = staff.breakTime;
 
     // най-ранен допустим час, ако денят е днешният
@@ -228,6 +242,7 @@ const Booking = (() => {
     getService, getStaff, getCategory, staffForService,
     all, upcoming, add, remove, isPast,
     slotsFor, dayHasSlots, countFreeSlots, icsFor,
+    setBusyProvider, overlaps,
     maxDaysAhead
   };
 })();
@@ -372,4 +387,169 @@ const Notify = (() => {
   }
 
   return { init, isReady, send, googleCalendarUrl, salonEmail: cfg.salonEmail };
+})();
+
+/* ============================================================
+   Google Календар през Apps Script.
+
+   Заетите часове се теглят за конкретния ден чак когато клиентът
+   го избере — така календарът на месеца не прави 30 заявки.
+   Ако услугата не отговори, сайтът продължава да работи само с
+   локално запазените часове.
+   ============================================================ */
+
+const Calendar = (() => {
+  const cfg = typeof CALENDAR_CONFIG !== 'undefined' ? CALENDAR_CONFIG : { enabled: false };
+
+  const busy = new Map();     // 'YYYY-MM-DD' → [{ start, duration, staffId }]
+  const state = new Map();    // 'YYYY-MM-DD' → 'ok' | 'fail' | 'off'
+  const inflight = new Map(); // 'YYYY-MM-DD' → Promise
+
+  const isOn = () => !!(cfg.enabled && cfg.webAppUrl && !cfg.webAppUrl.startsWith('YOUR_'));
+
+  /* ---------- Разчитане на часове ---------- */
+
+  /** '09:30' | 570 | '2026-09-07T09:30:00' → минути от полунощ */
+  function toMinutes(value) {
+    if (value == null) return null;
+    if (typeof value === 'number' && isFinite(value)) return value;
+
+    const text = String(value).trim();
+    const hhmm = text.match(/^(\d{1,2}):(\d{2})/);
+    if (hhmm) return Number(hhmm[1]) * 60 + Number(hhmm[2]);
+
+    const iso = text.match(/T(\d{2}):(\d{2})/);
+    if (iso) return Number(iso[1]) * 60 + Number(iso[2]);
+
+    const parsed = new Date(text);
+    if (!isNaN(parsed)) return parsed.getHours() * 60 + parsed.getMinutes();
+    return null;
+  }
+
+  /** Привежда отговора на Apps Script към [{ start, duration, staffId }] */
+  function parseBusy(list) {
+    if (!Array.isArray(list)) return [];
+    const fallback = Number(cfg.defaultBusyMinutes) || 60;
+
+    return list.map(entry => {
+      // прост запис: само начален час
+      if (typeof entry === 'string' || typeof entry === 'number') {
+        const start = toMinutes(entry);
+        return start == null ? null : { start, duration: fallback, staffId: null };
+      }
+      if (!entry || typeof entry !== 'object') return null;
+
+      const start = toMinutes(entry.start ?? entry.time ?? entry.from ?? entry.startTime);
+      if (start == null) return null;
+
+      const end = toMinutes(entry.end ?? entry.to ?? entry.endTime);
+      const duration = Number(entry.duration) > 0
+        ? Number(entry.duration)
+        : (end != null && end > start ? end - start : fallback);
+
+      return { start, duration, staffId: entry.staff || entry.staffId || null };
+    }).filter(Boolean);
+  }
+
+  /* ---------- Четене ---------- */
+
+  /** Синхронно: какво вече знаем за деня. Празно, ако още не е теглено. */
+  function cachedBusy(dateKey, staffId) {
+    const list = busy.get(dateKey);
+    if (!list || !list.length) return [];
+    // общ календар за студиото → зает час блокира всички специалисти
+    return list.filter(b => !b.staffId || b.staffId === staffId || cfg.sharedCalendar);
+  }
+
+  /** Тегли заетите часове за деня (веднъж на ден, с кеш) */
+  function load(dateKey, { force = false } = {}) {
+    if (!isOn()) {
+      state.set(dateKey, 'off');
+      return Promise.resolve('off');
+    }
+    if (!force && state.has(dateKey) && state.get(dateKey) === 'ok') {
+      return Promise.resolve('ok');
+    }
+    if (inflight.has(dateKey)) return inflight.get(dateKey);
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), (cfg.timeoutSeconds || 8) * 1000);
+
+    const job = fetch(`${cfg.webAppUrl}?date=${encodeURIComponent(dateKey)}`, { signal: controller.signal })
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status))))
+      .then(data => {
+        const list = (data && (data.busySlots || data.busy || data.slots)) || [];
+        busy.set(dateKey, parseBusy(list));
+        state.set(dateKey, 'ok');
+        return 'ok';
+      })
+      .catch(err => {
+        console.warn('Заетите часове не се заредиха от календара:', err && err.message);
+        if (!busy.has(dateKey)) busy.set(dateKey, []);
+        state.set(dateKey, 'fail');
+        return 'fail';
+      })
+      .finally(() => {
+        clearTimeout(timer);
+        inflight.delete(dateKey);
+      });
+
+    inflight.set(dateKey, job);
+    return job;
+  }
+
+  const statusFor = dateKey => state.get(dateKey) || (isOn() ? 'unknown' : 'off');
+
+  /* ---------- Записване ---------- */
+
+  /**
+   * Изпраща резервацията към Apps Script, който я вписва в календара.
+   * Имената на полетата са същите като в оригиналния скрипт.
+   */
+  async function push(booking) {
+    if (!isOn() || !cfg.sendBookings) return { ok: false, skipped: true };
+
+    const service = Booking.getService(booking.serviceId);
+    const staff = Booking.getStaff(booking.staffId);
+    const category = service ? Booking.getCategory(service.category) : null;
+
+    const payload = {
+      name: booking.name,
+      phone: booking.phone,
+      email: booking.email,
+      notes: booking.note || '',
+      categoryLabel: category ? category.name : '',
+      serviceName: service ? `${service.name} (при ${staff ? staff.name : '—'})` : '',
+      specialist: staff ? staff.name : '',
+      specialistId: booking.staffId,
+      dateFormatted: Booking.formatDateLong(booking.date),
+      time: Booking.formatTime(booking.start),
+      rawDate: booking.date,
+      rawTime: Booking.formatTime(booking.start),
+      duration: booking.duration,
+      price: booking.price,
+      code: booking.code
+    };
+
+    try {
+      // text/plain пести CORS preflight заявката към Apps Script
+      await fetch(cfg.webAppUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      });
+      // часът вече е зает и за следващия посетител
+      busy.set(booking.date, (busy.get(booking.date) || []).concat({
+        start: booking.start, duration: booking.duration, staffId: booking.staffId
+      }));
+      return { ok: true };
+    } catch (err) {
+      console.warn('Резервацията не стигна до календара:', err && err.message);
+      return { ok: false, error: err };
+    }
+  }
+
+  Booking.setBusyProvider(cachedBusy);
+
+  return { isOn, load, cachedBusy, statusFor, push, parseBusy, toMinutes };
 })();

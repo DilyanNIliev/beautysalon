@@ -407,19 +407,27 @@
         if (free) b.classList.add('has-free');
         if (state.dateKey === key) b.classList.add('is-selected');
         b.setAttribute('aria-label', `${Booking.formatDateLong(key)}${free ? '' : ' — няма свободни часове'}`);
-        b.addEventListener('click', () => {
+        b.addEventListener('click', async () => {
           state.dateKey = key;
           state.start = null;
           renderCalendar();
-          renderSlots();
           renderSummary();
           refreshNext();
+
+          const needsCheck = Calendar.isOn() && Calendar.statusFor(key) !== 'ok';
+          renderSlots({ loading: needsCheck });
+          if (!needsCheck) return;
+
+          await Calendar.load(key);
+          if (state.dateKey !== key) return; // клиентът вече е избрал друг ден
+          renderCalendar();
+          renderSlots();
         });
         nodes.calGrid.appendChild(b);
       }
     }
 
-    function renderSlots() {
+    function renderSlots(opts = {}) {
       const service = Booking.getService(state.serviceId);
       nodes.slotList.innerHTML = '';
 
@@ -430,10 +438,17 @@
       }
 
       nodes.slotsTitle.textContent = `Свободни часове — ${Booking.formatDateLong(state.dateKey)}`;
+
+      if (opts.loading) {
+        nodes.slotList.appendChild(el('p', 'empty-note is-loading', 'Проверявам календара за заети часове…'));
+        return;
+      }
+
       const slots = Booking.slotsFor(state.staffId, state.dateKey, service.duration);
 
       if (!slots.length) {
         nodes.slotList.appendChild(el('p', 'empty-note', 'За този ден няма свободни часове. Опитайте с друга дата.'));
+        renderCalendarNote();
         return;
       }
 
@@ -449,6 +464,16 @@
         });
         nodes.slotList.appendChild(b);
       });
+
+      renderCalendarNote();
+    }
+
+    /** Предупреждение, ако календарът не е отговорил */
+    function renderCalendarNote() {
+      if (!state.dateKey || Calendar.statusFor(state.dateKey) !== 'fail') return;
+      nodes.slotList.prepend(el('p', 'slots-warn',
+        'Календарът на студиото не отговори — възможно е част от тези часове вече да са заети. ' +
+        'Ще потвърдим по телефона.'));
     }
 
     /* ---- Стъпка 4: валидация ---- */
@@ -496,6 +521,23 @@
       const service = Booking.getService(state.serviceId);
 
       setBusy(true);
+
+      // последна проверка в календара — може някой да е заел часа междувременно
+      if (Calendar.isOn()) {
+        await Calendar.load(state.dateKey, { force: true });
+        const free = Booking.slotsFor(state.staffId, state.dateKey, service.duration);
+        if (!free.includes(state.start)) {
+          setBusy(false);
+          toast('Този час вече е зает в календара на студиото. Моля, изберете друг.');
+          state.start = null;
+          show(3);
+          renderCalendar();
+          renderSlots();
+          renderSummary();
+          return;
+        }
+      }
+
       const res = Booking.add({
         serviceId: state.serviceId,
         staffId: state.staffId,
@@ -519,9 +561,15 @@
         return;
       }
 
-      // часът вече е запазен — имейлът не може да го отмени, само уведомява
-      const mail = await Notify.send(res.booking);
+      // часът вече е запазен — имейлът и календарът само уведомяват
+      const [mail, calendar] = await Promise.all([
+        Notify.send(res.booking),
+        Calendar.push(res.booking)
+      ]);
       setBusy(false);
+      if (!calendar.ok && !calendar.skipped) {
+        console.warn('Часът е запазен локално, но не влезе в Google Календар.');
+      }
 
       lastBooking = res.booking;
       renderDone(res.booking);
