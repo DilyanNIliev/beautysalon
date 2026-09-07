@@ -582,15 +582,40 @@ const Calendar = (() => {
 
     try {
       // text/plain пести CORS preflight заявката към Apps Script
-      await fetch(cfg.webAppUrl, {
+      const res = await fetch(cfg.webAppUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify(payload)
       });
+      checkScriptAnswer(res, booking);
       return { ok: true };
     } catch (err) {
       console.warn('Резервацията не стигна до календара:', err && err.message);
       return { ok: false, error: err };
+    }
+  }
+
+  /**
+   * Ако скриптът върне край на събитието, сверяваме го с продължителността на
+   * услугата. Стар скрипт прави събития от по един час независимо какво му
+   * пращаме — тогава двучасова услуга заема само първия час в календара.
+   */
+  async function checkScriptAnswer(response, booking) {
+    let data;
+    try {
+      data = JSON.parse(await response.text());
+    } catch (e) {
+      return; // скриптът не отговаря с JSON — няма какво да сверим
+    }
+    if (!data || !data.end) return;
+
+    const expected = Booking.formatTime(booking.start + booking.duration);
+    if (data.end !== expected) {
+      console.warn(
+        `Apps Script създаде събитие до ${data.end}, а услугата трае до ${expected}. ` +
+        'Скриптът явно не ползва полето duration — заменете го с ' +
+        'google-apps-script/Code.gs и направете Deploy → New version.'
+      );
     }
   }
 
