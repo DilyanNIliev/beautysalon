@@ -113,5 +113,5 @@ const BOOKING_CONFIG = {
   slotStep: 30,          // на колко минути се предлагат начални часове
   minLeadMinutes: 90,    // най-рано колко време напред може да се запази час
   maxDaysAhead: 45,      // докъде напред е отворен календарът
-  storageKey: 'laurel.bookings.v1'
+  storageKey: 'laurel.bookings.v2'
 };

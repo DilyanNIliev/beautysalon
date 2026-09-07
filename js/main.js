@@ -454,9 +454,9 @@
           renderSummary();
           refreshNext();
 
-          const needsCheck = Calendar.isOn() && Calendar.statusFor(key) !== 'ok';
-          renderSlots({ loading: needsCheck });
-          if (!needsCheck) return;
+          // календарът се пита наново при всяко отваряне на деня
+          if (!Calendar.isOn()) return renderSlots();
+          renderSlots({ loading: !Calendar.hasData(key) });
 
           await Calendar.load(key);
           if (state.dateKey !== key) return; // клиентът вече е избрал друг ден
@@ -624,7 +624,7 @@
 
       // последна проверка в календара — може някой да е заел часа междувременно
       if (Calendar.isOn()) {
-        await Calendar.load(state.dateKey, { force: true });
+        await Calendar.load(state.dateKey);
         const free = Booking.slotsFor(state.staffId, state.dateKey, service.duration);
         if (!free.includes(state.start)) {
           setBusy(false);
@@ -861,6 +861,9 @@
       return;
     }
 
+    body.appendChild(el('p', 'modal-note',
+      'Този списък се пази само на това устройство. Часовете живеят в графика на студиото.'));
+
     list.forEach(b => {
       const service = Booking.getService(b.serviceId);
       const staff = Booking.getStaff(b.staffId);
@@ -880,6 +883,11 @@
         </div>`}`;
       body.appendChild(row);
     });
+
+    const clear = el('button', 'btn btn-ghost btn-sm modal-clear', 'Изчисти списъка');
+    clear.type = 'button';
+    clear.dataset.clear = '1';
+    body.appendChild(clear);
   }
 
   function openModal() {
@@ -909,11 +917,26 @@
       const ics = e.target.closest('[data-ics]');
       if (cancel) {
         const b = Booking.all().find(x => x.id === cancel.dataset.cancel);
-        if (b && confirm('Сигурни ли сте, че искате да откажете този час?')) {
+        const viaStudio = Calendar.isOn();
+        const question = viaStudio
+          ? `Часът ще бъде премахнат от този списък. За да го отменим и в графика на студиото, обадете се на ${STUDIO.phone}. Да го премахна ли?`
+          : 'Сигурни ли сте, че искате да откажете този час?';
+        if (b && confirm(question)) {
           Booking.remove(b.id);
           renderBookings();
           updateBadge();
-          toast('Часът е отказан. Мястото отново е свободно.');
+          toast(viaStudio
+            ? `Премахнат от списъка. Обадете се на ${STUDIO.phone}, за да го освободим в графика.`
+            : 'Часът е отказан. Мястото отново е свободно.');
+        }
+      }
+      if (e.target.closest('[data-clear]')) {
+        if (confirm('Да изчистя ли целия списък на това устройство? Запазените часове остават в графика на студиото.')) {
+          Booking.all().forEach(b => Booking.remove(b.id));
+          Calendar.reset();
+          renderBookings();
+          updateBadge();
+          toast('Списъкът е изчистен.');
         }
       }
       if (ics) {

@@ -143,6 +143,12 @@ const Booking = (() => {
      показваме само това, което вече е изтеглено за деня. */
   let busyProvider = null;
   const setBusyProvider = fn => { busyProvider = fn; };
+
+  /* Когато календарът е източникът на истина, запазеното в браузъра не
+     блокира часове — иначе изтрито от календара събитие би оставало заето
+     завинаги на устройството, което го е направило. */
+  let localBlocks = true;
+  const setLocalBlocking = value => { localBlocks = !!value; };
   const externalBusy = (dateKey, staffId) => {
     if (!busyProvider) return [];
     try {
@@ -173,7 +179,7 @@ const Booking = (() => {
     const shift = staff.schedule[date.getDay()];
     if (!shift) return [];
 
-    const taken = forStaffDay(staffId, dateKey).concat(externalBusy(dateKey, staffId));
+    const taken = (localBlocks ? forStaffDay(staffId, dateKey) : []).concat(externalBusy(dateKey, staffId));
     const brk = staff.breakTime;
 
     // най-ранен допустим час, ако денят е днешният
@@ -262,7 +268,7 @@ const Booking = (() => {
     getService, getStaff, getCategory, staffForService,
     all, upcoming, add, remove, isPast,
     daySlots, slotsFor, dayHasSlots, countFreeSlots, icsFor,
-    setBusyProvider, overlaps,
+    setBusyProvider, setLocalBlocking, overlaps,
     maxDaysAhead
   };
 })();
@@ -475,21 +481,23 @@ const Calendar = (() => {
 
   /** Синхронно: какво вече знаем за деня. Празно, ако още не е теглено. */
   function cachedBusy(dateKey, staffId) {
-    const list = busy.get(dateKey);
-    if (!list || !list.length) return [];
+    const list = busy.get(dateKey) || [];
+    if (!list.length) return [];
     // общ календар за студиото → зает час блокира всички специалисти
     return list.filter(b => !b.staffId || b.staffId === staffId || cfg.sharedCalendar);
   }
 
-  /** Тегли заетите часове за деня (веднъж на ден, с кеш) */
-  function load(dateKey, { force = false } = {}) {
+  /**
+   * Тегли заетите часове за деня. Прави го при всяко отваряне на деня —
+   * нищо не се кешира между заявките, за да не остане показан стар час.
+   * Кешът служи само на синхронното четене между заявката и рисуването.
+   */
+  function load(dateKey) {
     if (!isOn()) {
       state.set(dateKey, 'off');
       return Promise.resolve('off');
     }
-    if (!force && state.has(dateKey) && state.get(dateKey) === 'ok') {
-      return Promise.resolve('ok');
-    }
+    // ако точно в момента тече заявка за същия ден, изчакваме нея
     if (inflight.has(dateKey)) return inflight.get(dateKey);
 
     const controller = new AbortController();
@@ -519,6 +527,9 @@ const Calendar = (() => {
   }
 
   const statusFor = dateKey => state.get(dateKey) || (isOn() ? 'unknown' : 'off');
+
+  /** Имаме ли вече данни за деня (за да не мига списъкът при повторно отваряне) */
+  const hasData = dateKey => busy.has(dateKey);
 
   /* ---------- Записване ---------- */
 
@@ -558,10 +569,6 @@ const Calendar = (() => {
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify(payload)
       });
-      // часът вече е зает и за следващия посетител
-      busy.set(booking.date, (busy.get(booking.date) || []).concat({
-        start: booking.start, duration: booking.duration, staffId: booking.staffId
-      }));
       return { ok: true };
     } catch (err) {
       console.warn('Резервацията не стигна до календара:', err && err.message);
@@ -569,7 +576,15 @@ const Calendar = (() => {
     }
   }
 
-  Booking.setBusyProvider(cachedBusy);
+  /** Забравя изтегленото — следващото отваряне на ден пита календара наново */
+  function reset() {
+    busy.clear();
+    state.clear();
+  }
 
-  return { isOn, load, cachedBusy, statusFor, push, parseBusy, toMinutes };
+  Booking.setBusyProvider(cachedBusy);
+  // при активен календар локалните резервации не блокират часове
+  Booking.setLocalBlocking(!(isOn() && cfg.authoritative));
+
+  return { isOn, load, cachedBusy, statusFor, hasData, push, reset, parseBusy, toMinutes };
 })();
