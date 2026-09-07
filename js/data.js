@@ -83,7 +83,8 @@ const STAFF = [
     initials: 'МТ',
     tone: 'tone-rose',
     services: SERVICES.map(s => s.id),
-    schedule: week(9, 20)
+    schedule: week(9, 20),
+    breakTime: { start: 12 * 60 + 30, end: 13 * 60 + 30 }
   }
 ];
 
@@ -109,7 +110,7 @@ const GALLERY = [
 
 /* --- Настройки на резервациите --- */
 const BOOKING_CONFIG = {
-  slotStep: 15,          // на колко минути се предлагат начални часове
+  slotStep: 30,          // на колко минути се предлагат начални часове
   minLeadMinutes: 90,    // най-рано колко време напред може да се запази час
   maxDaysAhead: 45,      // докъде напред е отворен календарът
   storageKey: 'laurel.bookings.v1'

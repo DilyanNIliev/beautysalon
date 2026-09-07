@@ -402,13 +402,23 @@ ul,ol,dl,dd,figure,blockquote{margin:0;padding:0;list-style:none}
 }
 .slot:hover{border-color:var(--ink);background:var(--cream)}
 .slot.is-selected{background:var(--ink);border-color:var(--ink);color:var(--cream)}
-.slot.is-taken,.slot.is-break{
+.slot.is-busy,.slot.is-break{
   text-decoration:line-through;text-decoration-thickness:1.5px;
   color:var(--ink-3);background:var(--cream-2);border-color:var(--line);
   border-style:dashed;cursor:not-allowed;
 }
-.slot.is-taken{text-decoration-color:var(--clay)}
-.slot.is-taken:hover,.slot.is-break:hover{background:var(--cream-2);border-color:var(--line)}
+.slot.is-busy{text-decoration-color:var(--clay)}
+.slot.is-short{
+  color:var(--line-2);background:transparent;border-color:var(--line);
+  border-style:dotted;cursor:not-allowed;
+}
+.slot.is-busy:hover,.slot.is-break:hover,.slot.is-short:hover{background:var(--cream-2);border-color:var(--line)}
+.slot.is-short:hover{background:transparent}
+/* часовете, които избраната услуга заема след началото си */
+.slot.is-span{
+  background:var(--clay-soft);border-color:var(--clay);border-style:solid;
+  color:var(--clay-dark);text-decoration:none;
+}
 .slots-legend{margin-top:.7rem;font-size:.78rem;color:var(--ink-3)}
 .empty-note.is-loading{color:var(--ink-3);display:flex;align-items:center;justify-content:center;gap:.6rem}
 .empty-note.is-loading::before{
@@ -483,7 +493,7 @@ ul,ol,dl,dd,figure,blockquote{margin:0;padding:0;list-style:none}
 .summary-list dd{font-weight:600;text-align:right}
 .summary-total{display:flex;justify-content:space-between;align-items:baseline;padding:.85rem 1rem;background:var(--paper);border-radius:var(--r-md);border:1px solid var(--line)}
 .summary-total span{font-size:.82rem;color:var(--ink-2)}
-.summary-total strong{font-family:var(--serif);font-size:1.65rem;color:var(--clay-dark)}
+.summary-total strong{font-family:var(--serif);font-size:1.65rem;color:var(--clay-dark);white-space:nowrap}
 .summary-note{font-size:.78rem;color:var(--ink-3);margin-top:auto}
 
 /* ---------- 9. Модал и тост ---------- */

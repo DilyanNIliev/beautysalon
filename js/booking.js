@@ -154,9 +154,11 @@ const Booking = (() => {
 
   /**
    * Всички начални часове за деня със статуса на всеки:
-   *   'free'  — свободен
-   *   'taken' — зает (локална резервация или събитие в календара)
-   *   'break' — пада в почивката на специалиста
+   *   'free'  — свободен и услугата се събира от този час нататък
+   *   'busy'  — самият час е зает (събитие в календара или резервация)
+   *   'break' — самият час пада в обедната почивка
+   *   'short' — часът е свободен, но услугата не се събира: следващ час е
+   *             зает или работният ден свършва по-рано
    *   'past'  — вече е минал или е твърде скоро за днес
    */
   const daySlots = (staffId, dateKey, duration) => {
@@ -182,12 +184,20 @@ const Booking = (() => {
       earliest = Math.max(earliest, Math.ceil(nowMins / slotStep) * slotStep);
     }
 
+    const hitsTaken = (from, span) => taken.some(b => overlaps(from, span, b.start, b.duration));
+    const hitsBreak = (from, span) => !!brk && overlaps(from, span, brk.start, brk.end - brk.start);
+
     const out = [];
-    for (let t = shift.start; t + duration <= shift.end; t += slotStep) {
-      let status = 'free';
+    for (let t = shift.start; t + slotStep <= shift.end; t += slotStep) {
+      let status;
       if (t < earliest) status = 'past';
-      else if (brk && overlaps(t, duration, brk.start, brk.end - brk.start)) status = 'break';
-      else if (taken.some(b => overlaps(t, duration, b.start, b.duration))) status = 'taken';
+      // първо самата клетка: тя определя дали часът се показва задраскан
+      else if (hitsTaken(t, slotStep)) status = 'busy';
+      else if (hitsBreak(t, slotStep)) status = 'break';
+      // после дали цялата услуга се събира от този час нататък
+      else if (t + duration > shift.end || hitsTaken(t, duration) || hitsBreak(t, duration)) status = 'short';
+      else status = 'free';
+
       out.push({ start: t, status });
     }
     return out;

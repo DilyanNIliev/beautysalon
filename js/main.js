@@ -496,7 +496,11 @@
         return;
       }
 
-      const LABELS = { taken: 'зает', break: 'почивка' };
+      const LABELS = {
+        busy: 'зает',
+        break: 'обедна почивка',
+        short: `не остава време за ${Booking.formatDuration(service.duration)} от този час`
+      };
 
       slots.forEach(({ start: t, status }) => {
         const free = status === 'free';
@@ -504,6 +508,7 @@
         const b = el('button', `slot${selected ? ' is-selected' : ''}${free ? '' : ' is-' + status}`,
           Booking.formatTime(t));
         b.type = 'button';
+        b.dataset.min = t;
 
         if (!free) {
           b.disabled = true;
@@ -511,25 +516,56 @@
           b.setAttribute('aria-label', `${Booking.formatTime(t)} — ${LABELS[status] || 'не е свободен'}`);
         } else {
           b.setAttribute('aria-pressed', String(selected));
+          b.title = `${Booking.formatTime(t)} – ${Booking.formatTime(t + service.duration)}`;
           b.addEventListener('click', () => {
             state.start = t;
             renderSlots();
             renderSummary();
             refreshNext();
           });
+          // при посочване се вижда докъде ще стигне услугата
+          b.addEventListener('mouseenter', () => markSpan(t));
+          b.addEventListener('focus', () => markSpan(t));
+          b.addEventListener('mouseleave', () => markSpan(state.start));
+          b.addEventListener('blur', () => markSpan(state.start));
         }
 
         nodes.slotList.appendChild(b);
       });
 
+      markSpan(state.start);
+
+      const notes = [];
       if (!slots.some(s => s.status === 'free')) {
-        nodes.slotList.after(el('p', 'slots-legend',
-          'Всички часове за този ден са заети. Опитайте с друга дата или друг специалист.'));
-      } else if (slots.some(s => s.status === 'taken')) {
-        nodes.slotList.after(el('p', 'slots-legend', 'Задрасканите часове вече са заети.'));
+        notes.push('Няма свободен час за тази услуга в този ден. Опитайте с друга дата.');
+      } else {
+        if (slots.some(s => s.status === 'busy' || s.status === 'break')) {
+          notes.push('Задрасканите часове са заети.');
+        }
+        if (slots.some(s => s.status === 'short')) {
+          notes.push(`Бледите не стигат за ${Booking.formatDuration(service.duration)}.`);
+        }
+        if (service.duration > (BOOKING_CONFIG.slotStep || 30)) {
+          notes.push('Изберете начален час — маркира се цялото време, което заема услугата.');
+        }
       }
+      if (notes.length) nodes.slotList.after(el('p', 'slots-legend', escape(notes.join(' '))));
 
       renderCalendarNote();
+    }
+
+    /** Оцветява часовете, които услугата ще заеме след избраното начало */
+    function markSpan(startMin) {
+      const service = Booking.getService(state.serviceId);
+      const cells = $$('.slot', nodes.slotList);
+      cells.forEach(c => c.classList.remove('is-span', 'is-span-end'));
+      if (startMin == null || !service) return;
+
+      const end = startMin + service.duration;
+      cells.forEach(c => {
+        const t = Number(c.dataset.min);
+        if (t > startMin && t < end) c.classList.add('is-span');
+      });
     }
 
     /** Предупреждение, ако календарът не е отговорил */
