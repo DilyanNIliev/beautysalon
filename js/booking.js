@@ -456,12 +456,15 @@ const Calendar = (() => {
   function parseBusy(list) {
     if (!Array.isArray(list)) return [];
     const fallback = Number(cfg.defaultBusyMinutes) || 60;
+    let guessed = 0;   // записи без край — приемаме им продължителност
 
-    return list.map(entry => {
+    const out = list.map(entry => {
       // прост запис: само начален час
       if (typeof entry === 'string' || typeof entry === 'number') {
         const start = toMinutes(entry);
-        return start == null ? null : { start, duration: fallback, staffId: null };
+        if (start == null) return null;
+        guessed++;
+        return { start, duration: fallback, staffId: null };
       }
       if (!entry || typeof entry !== 'object') return null;
 
@@ -469,12 +472,27 @@ const Calendar = (() => {
       if (start == null) return null;
 
       const end = toMinutes(entry.end ?? entry.to ?? entry.endTime);
-      const duration = Number(entry.duration) > 0
-        ? Number(entry.duration)
-        : (end != null && end > start ? end - start : fallback);
+      let duration;
+      if (Number(entry.duration) > 0) {
+        duration = Number(entry.duration);
+      } else if (end != null && end > start) {
+        duration = end - start;
+      } else {
+        duration = fallback;
+        guessed++;
+      }
 
       return { start, duration, staffId: entry.staff || entry.staffId || null };
     }).filter(Boolean);
+
+    if (guessed) {
+      console.warn(
+        `Календарът върна ${guessed} зает(и) час(а) без край — приемам по ${fallback} мин. ` +
+        'Двучасово събитие така запушва само първия час. ' +
+        'Обновете Apps Script скрипта (google-apps-script/Code.gs), за да връща start и end.'
+      );
+    }
+    return out;
   }
 
   /* ---------- Четене ---------- */
